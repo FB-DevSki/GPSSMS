@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.SmsManager;
@@ -26,8 +27,7 @@ import java.util.Date;
 import java.util.prefs.Preferences;
 
 
-public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener, LocationListener {
+public class MainActivity extends AppCompatActivity {
 
     IncomingSms mReceiver = new IncomingSms();
 
@@ -64,28 +64,30 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private LocationManager lm;
     private Location location;
-
+    final Handler handler = new Handler();
+    GPSService gps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        handler.postDelayed(updateGPSInfo, 100);  //first update after 100 ms
         preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
         preferencesEditor = preferenceSettings.edit();
 
         //if preferences file exists
-        if ((preferenceSettings.getString("ownName", "0"))!= null) {
+        if ((preferenceSettings.getString("ownName", "0")) != null) {
             ownName = preferenceSettings.getString("ownName", "");
             ownGroup = preferenceSettings.getString("ownGroup", "");
             ownAlarmCode = preferenceSettings.getString("ownAlarmCode", "");
             callingSMSPhoneNr = preferenceSettings.getString("callingSMSPhoneNr", "");
             participantName1 = preferenceSettings.getString("participantName1", "");
-            participantTelNr1 = preferenceSettings.getString("participantTelNr1","");
+            participantTelNr1 = preferenceSettings.getString("participantTelNr1", "");
             participantName1 = preferenceSettings.getString("participantName2", "");
-            participantTelNr1 = preferenceSettings.getString("participantTelNr2","");
+            participantTelNr1 = preferenceSettings.getString("participantTelNr2", "");
             participantName1 = preferenceSettings.getString("participantName3", "");
-            participantTelNr1 = preferenceSettings.getString("participantTelNr3","");
+            participantTelNr1 = preferenceSettings.getString("participantTelNr3", "");
             participantName1 = preferenceSettings.getString("participantName4", "");
             participantTelNr1 = preferenceSettings.getString("participantTelNr4", "");
             alarmPosLat = preferenceSettings.getLong("alarmPosLat", 0);
@@ -125,80 +127,32 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             preferencesEditor.putLong("ownPosLat", (long) ownPosLat);
             preferencesEditor.putLong("ownPosLon", (long) ownPosLon);
             preferencesEditor.putString("alarmPosDateTime", alarmPosDateTime.toString());
-            preferencesEditor.putString("alarmPosDateTime", ownPosDateTime.toString() );
+            preferencesEditor.putString("alarmPosDateTime", ownPosDateTime.toString());
             preferencesEditor.commit();
 
         }
 
         Button btnSend = (Button) findViewById(R.id.btnSend);
-        btnSend.setEnabled(false);
-
-        //start localisation on slow rate
-        boolean isGPSEnabled = false;
-        boolean isNetworkEnabled = false;
-        boolean canGetLocation = false;
-        final long MIN_DIST_FOR_UPDATES = 10; // 10 meters
-        final long MIN_TIME_BTW_UPDATES = 1000 * 60 * 1; // 1 minute
-
-        lm = (LocationManager) this.getSystemService(LOCATION_SERVICE);
-
-        // getting GPS status
-        isGPSEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
-
-        // getting network status
-        isNetworkEnabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
-        if (!isGPSEnabled && !isNetworkEnabled) {
-            // no network provider is enabled
-        } else {
-            canGetLocation = true;
-            // First get location from Network Provider
-            if (isNetworkEnabled) {
-                lm.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER,
-                        MIN_TIME_BTW_UPDATES,
-                        MIN_DIST_FOR_UPDATES, this);
-                Log.d("Network Enabled", "Enabled");
-                if (lm != null) {
-                    location = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                    if (location != null) {
-                        alarmPosLat = location.getLatitude();
-                        alarmPosLon = location.getLongitude();
-                    }
-                }
-            }
-            // if GPS Enabled get lat/long using GPS Services
-            if (isGPSEnabled) {
-                Log.d("GPS Enabled ", "Enabled");
-                if (location == null) {
-                    lm.requestLocationUpdates(
-                            LocationManager.GPS_PROVIDER,
-                            MIN_TIME_BTW_UPDATES,
-                            MIN_DIST_FOR_UPDATES, this);
-                    if (lm != null) {
-                        location = lm
-                                .getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        if (location != null) {
-                            alarmPosLat = location.getLatitude();
-                            alarmPosLon = location.getLongitude();
-                        }
-                    }
-                }
-            }
-
-            preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
-            preferencesEditor = preferenceSettings.edit();
-            //voor test
-            //alarmPosLon =8.7;  //Pforzheim
-            //alarmPosLat = 48.9;
-
-            preferencesEditor.putLong("alarmPosLon", Double.doubleToRawLongBits(alarmPosLon));
-            preferencesEditor.putLong("alarmPosLat", Double.doubleToRawLongBits(alarmPosLat));
-            preferencesEditor.commit();
-            //set sendButton Enabled
-            btnSend.setEnabled(true);
-        }
+ //       btnSend.setEnabled(false);
     }
+
+    private Runnable updateGPSInfo = new Runnable(){
+        public void run(){
+            gps = new GPSService(MainActivity.this);
+            if (gps.canGetLocation()) {
+                double ownPosLat = gps.getLatitude();
+                double ownPosLon = gps.getLongitude();
+                double accuracy = gps.getAccuracy();
+                preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
+                preferencesEditor = preferenceSettings.edit();
+                preferencesEditor.putLong("ownPosLat", (long) ownPosLat);
+                preferencesEditor.putLong("ownPosLon", (long) ownPosLon);
+            } else {
+                Toast.makeText(getApplicationContext(),"van't get location",Toast.LENGTH_LONG).show();
+            }
+            handler.postDelayed(this,20000); //update each 20 sec (mountainbike speed)
+        }
+    };
 
     public void onBtnSendClicked (View view){
         alarmMessage = "SMSALARM Lat " + alarmPosLat +", Lon " + alarmPosLon;
@@ -230,48 +184,5 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        this.location = location;
-        ownPosLat = location.getLatitude();
-        ownPosLon = location.getLongitude();
-        preferencesEditor.putLong("alarmPosLon", Double.doubleToRawLongBits(ownPosLon));
-        preferencesEditor.putLong("alarmPosLat", Double.doubleToRawLongBits(ownPosLat));
-        preferencesEditor.commit();
-        Toast.makeText(this, "GPS UPDATE latitude " + alarmPosLat + " longitude "
-                + alarmPosLon, Toast.LENGTH_LONG).show();
-        Log.v("LOCALISATIE", "update");
-    }
-
-    @Override
-    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String s) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String s) {
-
-    }
-
-    @Override
-    public void onConnected(Bundle bundle) {
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-
     }
 }
