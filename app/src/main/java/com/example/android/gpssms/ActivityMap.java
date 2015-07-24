@@ -78,7 +78,7 @@ public class ActivityMap extends FragmentActivity implements LocationListener {
         //TODO moet positie lezen uit de PREFERENCES
 
         //if preferences file exists
-        if ((preferenceSettings.getString("ownName", "0"))!= null) {
+        if ((preferenceSettings.getString("ownName", "0")) != null) {
             ownName = preferenceSettings.getString("ownName", "");
             ownGroup = preferenceSettings.getString("ownGroup", "");
             ownAlarmCode = preferenceSettings.getString("ownAlarmCode", "");
@@ -91,11 +91,10 @@ public class ActivityMap extends FragmentActivity implements LocationListener {
             participantTelNr1 = preferenceSettings.getString("participantTelNr3", "");
             participantName1 = preferenceSettings.getString("participantName4", "");
             participantTelNr1 = preferenceSettings.getString("participantTelNr4", "");
-            alarmPosLat = Double.longBitsToDouble(preferenceSettings.getLong("alarmPosLat", 0));
-            alarmPosLon = Double.longBitsToDouble(preferenceSettings.getLong("alarmPosLon", 0));
-            ownPosLat = Double.longBitsToDouble(preferenceSettings.getLong("ownPosLat", 0));
-            ownPosLon = Double.longBitsToDouble(preferenceSettings.getLong("ownPosLon", 0));
-
+            alarmPosLat = Double.parseDouble(preferenceSettings.getString("alarmPosLat", "0"));
+            alarmPosLon = Double.parseDouble(preferenceSettings.getString("alarmPosLon", "0"));
+            ownPosLat = Double.parseDouble(preferenceSettings.getString("ownPosLat", "0"));
+            ownPosLon = Double.parseDouble(preferenceSettings.getString("ownPosLon", "0"));
             try {
                 alarmPosDateTime = format.parse(preferenceSettings.getString("posDateTime", ""));
             } catch (ParseException e) {
@@ -109,14 +108,10 @@ public class ActivityMap extends FragmentActivity implements LocationListener {
                 e.printStackTrace();
             }
             preferencesValid = true;
-            Toast.makeText(this, "ACTIVITY MAP latitude " + (Double)alarmPosLat + " longitude "
-                    + (Double)alarmPosLon, Toast.LENGTH_LONG).show();
         } else {
             Toast.makeText(this, "ACTIVITY MAP geen preferences", Toast.LENGTH_LONG).show();
         }
 
-//        preferencesEditor.putLong("longitude", Double.doubleToRawLongBits(5.8));
-//        preferencesEditor.putLong("latitude", Double.doubleToRawLongBits(51.98));
         preferencesEditor.commit();
     }
 
@@ -153,8 +148,9 @@ public class ActivityMap extends FragmentActivity implements LocationListener {
      */
     private void setUpMap() {
         preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
-        alarmPosLat = Double.longBitsToDouble(preferenceSettings.getLong("alarmPosLat", 0));
-        alarmPosLon = Double.longBitsToDouble(preferenceSettings.getLong("alarmPosLon", 0));
+
+        alarmPosLat = Double.parseDouble((preferenceSettings.getString("ownPosLat", "0")));
+        alarmPosLon = Double.parseDouble((preferenceSettings.getString("ownPosLon", "0")));
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(alarmPosLat, alarmPosLon), 14.0f));
         mMap.getUiSettings().setZoomGesturesEnabled(false); //kan nog wel 'pan'-en
         mMap.addMarker(new MarkerOptions().position(new LatLng(alarmPosLat,alarmPosLon)).title("Marker"));

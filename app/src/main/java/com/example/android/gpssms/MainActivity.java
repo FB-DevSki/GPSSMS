@@ -72,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        handler.postDelayed(updateGPSInfo, 100);  //first update after 100 ms
         preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
         preferencesEditor = preferenceSettings.edit();
 
@@ -90,10 +89,10 @@ public class MainActivity extends AppCompatActivity {
             participantTelNr1 = preferenceSettings.getString("participantTelNr3", "");
             participantName1 = preferenceSettings.getString("participantName4", "");
             participantTelNr1 = preferenceSettings.getString("participantTelNr4", "");
-            alarmPosLat = preferenceSettings.getLong("alarmPosLat", 0);
-            alarmPosLon = preferenceSettings.getLong("alarmPosLon", 0);
-            ownPosLat = preferenceSettings.getLong("alarmPosLat", 0);
-            ownPosLon = preferenceSettings.getLong("alarmPosLon", 0);
+            alarmPosLat = Double.parseDouble(preferenceSettings.getString("alarmPosLat", "0"));
+            alarmPosLon = Double.parseDouble(preferenceSettings.getString("alarmPosLon", "0"));
+            ownPosLat = Double.parseDouble(preferenceSettings.getString("ownPosLat", "0"));
+            ownPosLon = Double.parseDouble(preferenceSettings.getString("ownPosLon", "0"));
             try {
                 alarmPosDateTime = format.parse(preferenceSettings.getString("posDateTime", ""));
             } catch (ParseException e) {
@@ -122,10 +121,10 @@ public class MainActivity extends AppCompatActivity {
             preferencesEditor.putString("participantTelNr3", participantTelNr3);
             preferencesEditor.putString("participantName4", participantName4);
             preferencesEditor.putString("participantTelNr4", participantTelNr4);
-            preferencesEditor.putLong("alarmPosLat", (long) alarmPosLat);
-            preferencesEditor.putLong("alarmPosLon", (long) alarmPosLon);
-            preferencesEditor.putLong("ownPosLat", (long) ownPosLat);
-            preferencesEditor.putLong("ownPosLon", (long) ownPosLon);
+            preferencesEditor.putString ("alarmPosLat", Double.toString(alarmPosLat));
+            preferencesEditor.putString("alarmPosLon", Double.toString(alarmPosLon));
+            preferencesEditor.putString("ownPosLat", Double.toString(ownPosLat));
+            preferencesEditor.putString("ownPosLon", Double.toString(ownPosLon));
             preferencesEditor.putString("alarmPosDateTime", alarmPosDateTime.toString());
             preferencesEditor.putString("alarmPosDateTime", ownPosDateTime.toString());
             preferencesEditor.commit();
@@ -134,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button btnSend = (Button) findViewById(R.id.btnSend);
  //       btnSend.setEnabled(false);
+        handler.postDelayed(updateGPSInfo, 100);  //start location update after 100 ms
     }
 
     private Runnable updateGPSInfo = new Runnable(){
@@ -145,11 +145,23 @@ public class MainActivity extends AppCompatActivity {
                 double accuracy = gps.getAccuracy();
                 preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
                 preferencesEditor = preferenceSettings.edit();
-                preferencesEditor.putLong("ownPosLat", (long) ownPosLat);
-                preferencesEditor.putLong("ownPosLon", (long) ownPosLon);
+                preferencesEditor.putString("ownPosLat", Double.toString(ownPosLat));
+                preferencesEditor.putString("ownPosLon", Double.toString(ownPosLon));
+                preferencesEditor.commit();
+
+                //1. test
+                preferenceSettings = getSharedPreferences(PREFS_NAME, getApplicationContext().MODE_PRIVATE);
+                alarmPosLat = Double.parseDouble(preferenceSettings.getString("ownPosLat", ""));
+
+                Toast.makeText(getApplicationContext(), (Double) alarmPosLat + " "
+                        + (Double) ownPosLat, Toast.LENGTH_LONG).show();
+
+                //1.
+
             } else {
-                Toast.makeText(getApplicationContext(),"van't get location",Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),"can't get location",Toast.LENGTH_LONG).show();
             }
+
             handler.postDelayed(this,20000); //update each 20 sec (mountainbike speed)
         }
     };
